@@ -64,11 +64,11 @@ class _Line:
     char_set: str = ""
 
     def __init__(self, value: int) -> None:
-        if not (1 <= value <= 8):
-            raise IndexError(f"value was {value}")
         self.value = value
 
     def __str__(self) -> str:
+        if not (1 <= self.value <= 8):
+            return f"({self.value})"
         return self.char_set[self.value - 1]
 
 
@@ -84,6 +84,11 @@ class Square:
     def __init__(self, file: int, rank: int) -> None:
         self.file: int = file
         self.rank: int = rank
+
+    @property
+    def in_bounds(self) -> bool:
+        f, r = self.file, self.rank
+        return 1 <= min(f, r) <= max(f, r) <= 8
 
     def __str__(self) -> str:
         return f"{File(self.file)}{Rank(self.rank)}"
@@ -256,17 +261,12 @@ class Position:
             # do suffocations
             
             for helper in (move.target + d for d in Move.neighbors):
-                print(f"({helper.file}, {helper.rank})")
                 if self[helper].player is ~self.to_move:
                     for delta in Move.neighbors:
-                        try:
-                            if self[hd := helper + delta].is_empty:
-                                print(f"  {self[hd]} to {hd}: {self[hd].player}")
-                                break
-                            else:
-                                print(f"  {self[hd]} to {hd}: {self[hd].player}")
-                        except IndexError:
-                            pass
+                        if not (hd := helper + delta).in_bounds:
+                            continue
+                        if self[hd].is_empty:
+                            break
                     else:
                         self[helper] = Piece(Player.EMPTY)
 
