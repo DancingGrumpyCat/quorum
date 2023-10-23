@@ -1,6 +1,7 @@
+from contextlib import suppress
 from enum import Enum
 from itertools import batched, zip_longest
-from typing import Self, Sequence
+from typing import ClassVar, Self, Sequence
 
 
 class Player(Enum):
@@ -9,13 +10,12 @@ class Player(Enum):
     WHITE = +1
 
     def __str__(self) -> str:
-        return self.name.lower().capitalize()
+        return self.name.capitalize()
 
     def __invert__(self) -> Self:
         if self is Player.EMPTY:
             raise ValueError("Cannot invert empty")
-        else:
-            return Player(-self.value)
+        return Player(-self.value)
 
     @property
     def home_squares(self) -> tuple:
@@ -36,18 +36,13 @@ class Piece:
         return Piece(~self.player)
 
     def __str__(self) -> str:
-        match self.player.value:
-            case Player.BLACK.value:
+        match self.player:
+            case Player.BLACK:
                 return "●"
-            case Player.EMPTY.value:
+            case Player.EMPTY:
                 return "·"
-            case Player.WHITE.value:
+            case Player.WHITE:
                 return "○"
-            case _:
-                raise ValueError(
-                    "I thought this state was unreachable "
-                    f"(value was {self.player.value})."
-                )
 
     def __repr__(self) -> str:
         return f"Piece({self.player})"
@@ -99,14 +94,13 @@ class Square:
         elif isinstance(other, tuple):
             file, rank = other
         else:
-            raise TypeError()
-        return Square(self.file + file, self.rank + rank)
+            raise TypeError
+        return type(self)(self.file + file, self.rank + rank)
 
     def __floordiv__(self, n: int) -> Self:
         if isinstance(n, int):
-            return Square(self.file // n, self.rank // n)
-        else:
-            raise TypeError("A Square can only be divided by an int.")
+            return type(self)(self.file // n, self.rank // n)
+        raise TypeError("A Square can only be divided by an int.")
 
     __truediv__ = __floordiv__
 
@@ -133,10 +127,9 @@ class Move:
         self.origin = origin
         self.target = target
 
-        if not (target is None or origin is None):
-            self.center = (origin + target) / 2
-        else:
-            self.center = None
+        self.center = (
+            (origin + target) / 2 if not (target is None or origin is None) else None
+        )
 
     def __str__(self) -> str:
         return f"{self.origin or '+'}{self.target or ''}"
@@ -144,7 +137,7 @@ class Move:
 
 class Position:
     # fmt: off
-    START_BOARD = [
+    START_BOARD: ClassVar[list[Piece]] = [
     #      a       b       c       d       e       f       g       h
         _P( 0), _P( 0), _P( 0), _P( 0), _P(-1), _P(-1), _P(-1), _P(-1),  # 8
         _P( 0), _P( 0), _P( 0), _P( 0), _P( 0), _P(-1), _P(-1), _P(-1),  # 7
@@ -156,7 +149,7 @@ class Position:
         _P(+1), _P(+1), _P(+1), _P(+1), _P( 0), _P( 0), _P( 0), _P( 0),  # 1
     ]
 
-    PIECE_WEIGHTS = [
+    PIECE_WEIGHTS: ClassVar[list[int]] = [
     #   a    b    c    d    e    f    g    h
         1,   1,   1,   1,   1,   2,   4,   4,  # 8
         1,   1,   1,   2,   2,   4,   4,   4,  # 7
@@ -175,7 +168,7 @@ class Position:
         ply: int = 0,
         last_move: Move | None = None,
     ) -> None:
-        self.board = board
+        self.board = board.copy()
         self.ply = ply
         self.last_move = last_move
 
@@ -203,25 +196,22 @@ class Position:
     def __getitem__(
         self,
         square: Square,
-    ):
+    ) -> Piece:
         return self.board[square.file - (8 * square.rank) + 63]
 
-    def __setitem__(self, square: Square, new_piece: Piece):
+    def __setitem__(self, square: Square, new_piece: Piece) -> Self:
         board = self.board
         board[square.file - (8 * square.rank) + 63] = new_piece
         return Position(board)
 
     @property
-    def to_move(self):
-        if self.ply % 2 == 0:
-            return Player.WHITE
-        return Player.BLACK
+    def to_move(self) -> Player:
+        return Player.WHITE if self.ply % 2 == 0 else Player.BLACK
 
     def copy(self) -> Self:
         return type(self)(self.board, self.ply, self.last_move)
 
-    def move(self, move: Move) -> Self:
-        # new_pos = self.copy()
+    def move(self, move: Move) -> Self:  # noqa: C901
         new_pos = self
         home = self.to_move.home_squares
 
@@ -259,7 +249,6 @@ class Position:
             new_pos[move.origin] = Piece(Player.EMPTY)
 
             # do suffocations
-            
             for helper in (move.target + d for d in Move.neighbors):
                 if self[helper].player is ~self.to_move:
                     for delta in Move.neighbors:
@@ -270,18 +259,18 @@ class Position:
                     else:
                         self[helper] = Piece(Player.EMPTY)
 
-
             # do conversions
-            for helper in (move.target + (x * 2, y * 2) for (x, y) in Move.neighbors):
-                try:
+            for helper in (
+                move.target + (x * 2, y * 2)  # noqa: RUF005
+                for (x, y) in Move.neighbors
+            ):
+                with suppress(IndexError):
                     avg: Square = (helper + move.target) / 2
                     if (
                         not self[avg].is_empty
-                        and ~self[avg].player == self[helper].player
+                        and ~self[avg].player is self[helper].player
                     ):
                         new_pos[avg] = Piece(self.to_move)
-                except IndexError:
-                    pass
 
         new_pos.ply += 1
         new_pos.last_move = move
@@ -290,17 +279,16 @@ class Position:
 
     @property
     def win_progress(self) -> int:
-        win_squares = (D4, E4, D5, E5)
-        return sum(self[square].player.value for square in win_squares)
+        return sum(self[square].player.value for square in (D4, E4, D5, E5))
 
     @property
     def winner(self) -> Player:
-        _signum = lambda x: (x > 0) - (x < 0)
+        def _signum(x: float | int) -> int:
+            return (x > 0) - (x < 0)
 
         if abs(self.win_progress) == 4:
             return Player(_signum(self.win_progress))
-        else:
-            return Player.EMPTY
+        return Player.EMPTY
 
     @property
     def whole_move(self) -> int:
@@ -399,7 +387,7 @@ H8 = Square(8, 8)
 
 def main() -> None:
     # fmt: off
-    winning_board = [
+    _ = [
     #      a       b       c       d       e       f       g       h
         _P(0) , _P(0) , _P(0) , _P(0) , _P(-1), _P(-1), _P(-1), _P(-1),  # 8
         _P(0) , _P(0) , _P(0) , _P(0) , _P(0) , _P(-1), _P(-1), _P(-1),  # 7
@@ -412,7 +400,6 @@ def main() -> None:
     ]
     # fmt: on
 
-    # p = Position(board=winning_board)
     # print(p, p.win_progress, p.winner, sep="\n\n")
 
     move_list = (
@@ -434,7 +421,7 @@ def main() -> None:
         Move(H5, F3),
         Move(A1, C5),
         Move(H6, D4),
-        Move(B1, H6)
+        Move(B1, H6),
     )
     print(pgn(move_list))
 
@@ -446,6 +433,7 @@ def main() -> None:
         p.move(move)
         print(p)
         print()
+
 
 if __name__ == "__main__":
     main()
