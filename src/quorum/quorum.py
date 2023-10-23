@@ -65,7 +65,7 @@ class _Line:
 
     def __init__(self, value: int) -> None:
         if not (1 <= value <= 8):
-            raise ValueError
+            raise IndexError(f"value was {value}")
         self.value = value
 
     def __str__(self) -> str:
@@ -254,12 +254,17 @@ class Position:
             new_pos[move.origin] = Piece(Player.EMPTY)
 
             # do suffocations
+            
             for helper in (move.target + d for d in Move.neighbors):
-                if self[helper] is not self.to_move:
+                print(f"({helper.file}, {helper.rank})")
+                if self[helper].player is ~self.to_move:
                     for delta in Move.neighbors:
                         try:
-                            if self[helper + delta].is_empty:
+                            if self[hd := helper + delta].is_empty:
+                                print(f"  {self[hd]} to {hd}: {self[hd].player}")
                                 break
+                            else:
+                                print(f"  {self[hd]} to {hd}: {self[hd].player}")
                         except IndexError:
                             pass
                     else:
@@ -428,7 +433,8 @@ def main() -> None:
         Move(B2, D6),
         Move(H5, F3),
         Move(A1, C5),
-        Move(H6, D4)
+        Move(H6, D4),
+        Move(B1, H6)
     )
     print(pgn(move_list))
 
