@@ -3,7 +3,6 @@ from itertools import batched, zip_longest
 from typing import Self, Sequence
 
 
-
 class Player(Enum):
     BLACK = -1
     EMPTY = +0
@@ -17,7 +16,7 @@ class Player(Enum):
             raise ValueError("Cannot invert empty")
         else:
             return Player(-self.value)
-        
+
     @property
     def home_squares(self) -> tuple:
         if self is Player.BLACK:
@@ -72,8 +71,10 @@ class _Line:
     def __str__(self) -> str:
         return self.char_set[self.value - 1]
 
+
 class Rank(_Line):
     char_set: str = "12345678"
+
 
 class File(_Line):
     char_set: str = "abcdefgh"
@@ -132,9 +133,8 @@ class Move:
         else:
             self.center = None
 
-
     def __str__(self) -> str:
-        return f"{self.origin or "+"}{self.target or ""}"
+        return f"{self.origin or '+'}{self.target or ''}"
 
 
 class Position:
@@ -211,7 +211,7 @@ class Position:
         if self.ply % 2 == 0:
             return Player.WHITE
         return Player.BLACK
-    
+
     def copy(self) -> Self:
         return type(self)(self.board, self.ply, self.last_move)
 
@@ -406,7 +406,7 @@ move_list = (
     Move(E8, E4),
     Move(A1, E3),
     Move(F7, D5),
-    Move()
+    Move(),
 )
 print(pgn(move_list))
 
