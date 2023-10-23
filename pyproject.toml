@@ -1,0 +1,63 @@
+[tool.poetry]
+name = "quorum"
+version = "0.1.0"
+description = "A library for playing and studying the abstract game Quorum."
+authors = ["DancingGrumpyCat <echo.zimet@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.6.1"
+ruff = "^0.1.1"
+pytest = "^7.4.2"
+black = "^23.10.0"
+
+
+[tool.mypy]
+exclude = "tests"
+
+[tool.ruff]
+target-version = "py38"
+select = [
+    "A",
+    "ANN",
+    "ARG",
+    "B",
+    "BLE",
+    "C",
+    "E",
+    "ERA",
+    "F",
+    "FBT",
+    "I",
+    "ISC",
+    "N",
+    "PIE",
+    "Q",
+    "RET",
+    "RSE",
+    "RUF",
+    "SIM",
+    "SLF",
+    "TCH",
+    "TRY",
+    "UP",
+    "W",
+]
+ignore = [
+    "ANN101", # Require annotation of Self, cls
+    "ANN102",
+    "ANN401",
+    "RUF001", # Ambiguous characters for strings
+    "RUF002", # Ambiguous characters for docstring
+    "RUF003", # Ambiguous characters for comments
+    "TRY003",
+]
+exclude = ["tests"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
