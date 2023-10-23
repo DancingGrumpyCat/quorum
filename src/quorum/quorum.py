@@ -216,7 +216,8 @@ class Position:
         return type(self)(self.board, self.ply, self.last_move)
 
     def move(self, move: Move) -> Self:
-        new_pos = self.copy()
+        # new_pos = self.copy()
+        new_pos = self
         home = self.to_move.home_squares
 
         # move is a placement
@@ -253,8 +254,17 @@ class Position:
             new_pos[move.origin] = Piece(Player.EMPTY)
 
             # do suffocations
-            for helper in (move.target + delta for delta in Move.neighbors):
-                pass
+            for helper in (move.target + d for d in Move.neighbors):
+                if self[helper] is not self.to_move:
+                    for delta in Move.neighbors:
+                        try:
+                            if self[helper + delta].is_empty:
+                                break
+                        except IndexError:
+                            pass
+                    else:
+                        self[helper] = Piece(Player.EMPTY)
+
 
             # do conversions
             for helper in (move.target + (x * 2, y * 2) for (x, y) in Move.neighbors):
@@ -382,39 +392,54 @@ H7 = Square(8, 7)
 H8 = Square(8, 8)
 
 
-# fmt: off
-winning_board = [
-#      a       b       c       d       e       f       g       h
-    # _P(0) , _P(0) , _P(0) , _P(0) , _P(-1), _P(-1), _P(-1), _P(-1),  # 8
-    # _P(0) , _P(0) , _P(0) , _P(0) , _P(0) , _P(-1), _P(-1), _P(-1),  # 7
-    # _P(0) , _P(0) , _P(0) , _P(0) , _P(0) , _P(0) , _P(-1), _P(-1),  # 6
-    # _P(0) , _P(0) , _P(0) , _P(-1), _P(1) , _P(0) , _P(0) , _P(-1),  # 5
-    # _P(1) , _P(0) , _P(0) , _P(1) , _P(1) , _P(0) , _P(0) , _P(0) ,  # 4
-    # _P(1) , _P(1) , _P(0) , _P(0) , _P(0) , _P(0) , _P(0) , _P(0) ,  # 3
-    # _P(1) , _P(1) , _P(1) , _P(0) , _P(0) , _P(0) , _P(0) , _P(0) ,  # 2
-    # _P(1) , _P(1) , _P(1) , _P(1) , _P(0) , _P(0) , _P(0) , _P(0) ,  # 1
-]
-# fmt: on
+def main() -> None:
+    # fmt: off
+    winning_board = [
+    #      a       b       c       d       e       f       g       h
+        _P(0) , _P(0) , _P(0) , _P(0) , _P(-1), _P(-1), _P(-1), _P(-1),  # 8
+        _P(0) , _P(0) , _P(0) , _P(0) , _P(0) , _P(-1), _P(-1), _P(-1),  # 7
+        _P(0) , _P(0) , _P(0) , _P(0) , _P(0) , _P(0) , _P(-1), _P(-1),  # 6
+        _P(0) , _P(0) , _P(0) , _P(-1), _P(1) , _P(0) , _P(0) , _P(-1),  # 5
+        _P(1) , _P(0) , _P(0) , _P(1) , _P(1) , _P(0) , _P(0) , _P(0) ,  # 4
+        _P(1) , _P(1) , _P(0) , _P(0) , _P(0) , _P(0) , _P(0) , _P(0) ,  # 3
+        _P(1) , _P(1) , _P(1) , _P(0) , _P(0) , _P(0) , _P(0) , _P(0) ,  # 2
+        _P(1) , _P(1) , _P(1) , _P(1) , _P(0) , _P(0) , _P(0) , _P(0) ,  # 1
+    ]
+    # fmt: on
 
-# p = Position(board=winning_board)
-# print(p, p.win_progress, p.winner, sep="\n\n")
+    # p = Position(board=winning_board)
+    # print(p, p.win_progress, p.winner, sep="\n\n")
 
-move_list = (
-    Move(B1, D3),
-    Move(G8, E6),
-    Move(C1, E5),
-    Move(E8, E4),
-    Move(A1, E3),
-    Move(F7, D5),
-    Move(),
-)
-print(pgn(move_list))
+    move_list = (
+        Move(B1, D3),
+        Move(G8, E6),
+        Move(C1, E5),
+        Move(E8, E4),
+        Move(A1, E3),
+        Move(F7, D5),
+        Move(D1, F5),
+        Move(H8, F6),
+        Move(),
+        Move(F8, F4),
+        Move(C2, G4),
+        Move(H7, H3),
+        Move(A2, C4),
+        Move(),
+        Move(B2, D6),
+        Move(H5, F3),
+        Move(A1, C5),
+        Move(H6, D4)
+    )
+    print(pgn(move_list))
 
-p = Position()
-print()
-print(p)
-print()
-for move in move_list:
-    p.move(move)
+    p = Position()
+    print()
     print(p)
     print()
+    for move in move_list:
+        p.move(move)
+        print(p)
+        print()
+
+if __name__ == "__main__":
+    main()
