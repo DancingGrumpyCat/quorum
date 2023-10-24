@@ -1,6 +1,9 @@
 from contextlib import suppress
 from enum import Enum
-from itertools import batched, zip_longest
+from itertools import (  # type: ignore
+    batched,
+    zip_longest,
+)
 from typing import ClassVar, Self, Sequence
 
 
@@ -15,7 +18,7 @@ class Player(Enum):
     def __invert__(self) -> Self:
         if self is Player.EMPTY:
             raise ValueError("Cannot invert empty")
-        return Player(-self.value)
+        return type(self)(-self.value)
 
     @property
     def home_squares(self) -> tuple:
@@ -33,7 +36,7 @@ class Piece:
         self.player = player
 
     def __invert__(self) -> Self:
-        return Piece(~self.player)
+        return type(self)(~self.player)
 
     def __str__(self) -> str:
         match self.player:
@@ -151,14 +154,14 @@ class Position:
 
     PIECE_WEIGHTS: ClassVar[list[int]] = [
     #   a   b   c   d   e   f   g   h
-        1,  1,  1,  1,  1,  2,  4,  4,  # 8
-        1,  1,  1,  2,  2,  4,  4,  4,  # 7
-        1,  1,  2,  5,  5,  4,  4,  2,  # 6
+        1,  1,  1,  1,  1,  1,  1,  1,  # 8
+        1,  1,  1,  2,  2,  1,  1,  1,  # 7
+        1,  1,  2,  5,  5,  2,  1,  1,  # 6
         1,  2,  5, 10, 10,  5,  2,  1,  # 5
         1,  2,  5, 10, 10,  5,  2,  1,  # 4
-        2,  4,  2,  5,  5,  2,  1,  1,  # 3
-        4,  4,  4,  2,  2,  1,  1,  1,  # 2
-        4,  4,  2,  1,  1,  1,  1,  1,  # 1
+        1,  1,  2,  5,  5,  2,  1,  1,  # 3
+        1,  1,  1,  2,  2,  1,  1,  1,  # 2
+        1,  1,  1,  1,  1,  1,  1,  1,  # 1
     ]
     # fmt: on
 
@@ -202,7 +205,7 @@ class Position:
     def __setitem__(self, square: Square, new_piece: Piece) -> Self:
         board = self.board
         board[square.file - (8 * square.rank) + 63] = new_piece
-        return Position(board)
+        return type(self)(board)
 
     @property
     def to_move(self) -> Player:
