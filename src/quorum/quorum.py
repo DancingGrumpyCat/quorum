@@ -150,15 +150,15 @@ class Position:
     ]
 
     PIECE_WEIGHTS: ClassVar[list[int]] = [
-    #   a    b    c    d    e    f    g    h
-        1,   1,   1,   1,   1,   2,   4,   4,  # 8
-        1,   1,   1,   2,   2,   4,   4,   4,  # 7
-        1,   1,   2,   5,   5,   4,   4,   2,  # 6
-        1,   2,   5,  10,  10,   5,   2,   1,  # 5
-        1,   2,   5,  10,  10,   5,   2,   1,  # 4
-        2,   4,   2,   5,   5,   2,   1,   1,  # 3
-        4,   4,   4,   2,   2,   1,   1,   1,  # 2
-        4,   4,   2,   1,   1,   1,   1,   1,  # 1
+    #   a   b   c   d   e   f   g   h
+        1,  1,  1,  1,  1,  2,  4,  4,  # 8
+        1,  1,  1,  2,  2,  4,  4,  4,  # 7
+        1,  1,  2,  5,  5,  4,  4,  2,  # 6
+        1,  2,  5, 10, 10,  5,  2,  1,  # 5
+        1,  2,  5, 10, 10,  5,  2,  1,  # 4
+        2,  4,  2,  5,  5,  2,  1,  1,  # 3
+        4,  4,  4,  2,  2,  1,  1,  1,  # 2
+        4,  4,  2,  1,  1,  1,  1,  1,  # 1
     ]
     # fmt: on
 
@@ -279,7 +279,7 @@ class Position:
 
     @property
     def win_progress(self) -> int:
-        return sum(self[square].player.value for square in (D4, E4, D5, E5))
+        return sum(self[square].player.value for square in WIN_SQUARES)
 
     @property
     def winner(self) -> Player:
@@ -310,6 +310,8 @@ def pgn(moves: Sequence[Move]) -> str:
         f"{n}. {' '.join(str(move).ljust(4) for move in moves)}"
         for n, moves in enumerate(batched(moves, 2), start=1)
     )
+
+
 
 
 A1 = Square(1, 1)
@@ -384,6 +386,8 @@ H6 = Square(8, 6)
 H7 = Square(8, 7)
 H8 = Square(8, 8)
 
+
+WIN_SQUARES = (D4, D5, E4, E5)
 
 def main() -> None:
     # fmt: off
