@@ -7,6 +7,17 @@ from itertools import (  # type: ignore
 from typing import ClassVar, Optional, Self, Sequence
 
 
+class DisplayStyle(Enum):
+    circles = "●○·⎸"
+    ascii_art = "XO-|"
+
+    def __getitem__(self, index: int) -> str:
+        return self.value[index]
+
+
+DISPLAY_STYLE = DisplayStyle.circles
+
+
 class Player(Enum):
     BLACK = -1
     EMPTY = +0
@@ -30,22 +41,35 @@ class Player(Enum):
 
 
 class Piece:
-    def __init__(self, player: Player | int) -> None:
+    def __init__(
+        self,
+        player: Player | int,
+        /,
+        *,
+        display_style: DisplayStyle = DISPLAY_STYLE,
+    ) -> None:
         if isinstance(player, int):
             player = Player(player)
         self.player = player
+        self.display_style = display_style
 
     def __invert__(self) -> Self:
         return type(self)(~self.player)
 
     def __str__(self) -> str:
+        pieces = ""
+        match self.display_style:
+            case DisplayStyle.ascii_art:
+                pieces = DisplayStyle.ascii_art.value
+            case _:
+                pieces = DisplayStyle.circles.value
         match self.player:
             case Player.BLACK:
-                return "●"
-            case Player.EMPTY:
-                return "·"
+                return pieces[0]
             case Player.WHITE:
-                return "○"
+                return pieces[1]
+            case Player.EMPTY:
+                return pieces[2]
 
     def __repr__(self) -> str:
         return f"Piece({self.player})"
@@ -79,7 +103,6 @@ class File(_Line):
 
 
 class Square:
-
     # fmt: off
     neighbors = (
         (-1, -1),
@@ -124,7 +147,6 @@ class Square:
 
 
 class Move:
-
     def __init__(
         self,
         origin: Optional[Square] = None,
@@ -194,9 +216,9 @@ class Position:
 
     def __str__(self) -> str:
         if self.winner is Player.EMPTY:
-            to_move_str = f"{self.to_move} to move"
+            to_move_str = f"{Piece(self.to_move.value)} to move"
         else:
-            to_move_str = f"{self.winner} wins by quorum"
+            to_move_str = f"{Piece(self.winner.value)} wins by quorum"
         extras = (
             to_move_str,
             f"Move: {self.whole_move} (ply {self.ply})",
@@ -205,7 +227,7 @@ class Position:
             f"Static evaluation: {self.static_evaluation}",
         )
 
-        sep = "  │  "
+        sep = f"  {DISPLAY_STYLE[3]}  "
 
         return f"  {' '.join(File.char_set)}{sep}\n" + "\n".join(  # type: ignore
             f"{Rank.char_set[7 - int(i)]} "
@@ -327,9 +349,9 @@ class Position:
 
 
 def pgn(
-        moves: Sequence[Move],
-        result: Optional[GameEnd] = None,
-    ) -> str:
+    moves: Sequence[Move],
+    result: Optional[GameEnd] = None,
+) -> str:
     if result is not None:
         moves = (*moves, result)
     return "\n".join(
@@ -415,7 +437,6 @@ WIN_SQUARES = (D4, D5, E4, E5)
 
 
 def main() -> None:
-
     move_list = (
         Move(B1, D3),
         Move(G8, E6),
