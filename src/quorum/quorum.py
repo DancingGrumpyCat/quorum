@@ -4,7 +4,7 @@ from itertools import (  # type: ignore
     batched,
     zip_longest,
 )
-from typing import ClassVar, Self, Sequence
+from typing import ClassVar, Optional, Self, Sequence
 
 
 class Player(Enum):
@@ -80,8 +80,8 @@ class File(_Line):
 
 class Square:
 
+    # fmt: off
     neighbors = (
-        # fmt: off
         (-1, -1),
         (-1,  0),
         (-1, +1),
@@ -90,8 +90,8 @@ class Square:
         (+1,  0),
         (+1, -1),
         ( 0, -1),
-        # fmt: on
     )
+    # fmt: on
 
     def __init__(self, file: int, rank: int) -> None:
         self.file: int = file
@@ -99,6 +99,7 @@ class Square:
 
     @property
     def in_bounds(self) -> bool:
+        # both file and rank must be between 1 and 8
         f, r = self.file, self.rank
         return 1 <= min(f, r) <= max(f, r) <= 8
 
@@ -126,18 +127,19 @@ class Move:
 
     def __init__(
         self,
-        origin: Square | None = None,
-        target: Square | None = None,
+        origin: Optional[Square] = None,
+        target: Optional[Square] = None,
     ) -> None:
         self.origin = origin
         self.target = target
 
-        self.center = (
+        self.center: Optional[Square] = (
             (origin + target) / 2 if not (target is None or origin is None) else None
         )
 
     def __str__(self) -> str:
         return f"{self.origin or '+'}{self.target or ''}"
+
 
 class GameEnd(Move):
     def __init__(self, winning_player: Player) -> None:
@@ -167,7 +169,7 @@ class Position:
         _P(+1), _P(+1), _P(+1), _P(+1), _P( 0), _P( 0), _P( 0), _P( 0),  # 1
     ]
 
-    PIECE_WEIGHTS: ClassVar[list[int]] = [
+    PIECE_WEIGHTS: tuple[int, ...] = (
     #   a   b   c   d   e   f   g   h
         1,  1,  1,  1,  1,  1,  1,  1,  # 8
         1,  1,  1,  2,  2,  1,  1,  1,  # 7
@@ -177,14 +179,14 @@ class Position:
         1,  1,  2,  5,  5,  2,  1,  1,  # 3
         1,  1,  1,  2,  2,  1,  1,  1,  # 2
         1,  1,  1,  1,  1,  1,  1,  1,  # 1
-    ]
+    )
     # fmt: on
 
     def __init__(
         self,
         board: list[Piece] = START_BOARD,
         ply: int = 0,
-        last_move: Move | None = None,
+        last_move: Optional[Move] = None,
     ) -> None:
         self.board = board.copy()
         self.ply = ply
@@ -215,10 +217,7 @@ class Position:
             )
         )
 
-    def __getitem__(
-        self,
-        square: Square,
-    ) -> Piece:
+    def __getitem__(self, square: Square) -> Piece:
         return self.board[square.file - (8 * square.rank) + 63]
 
     def __setitem__(self, square: Square, new_piece: Piece) -> Self:
@@ -233,7 +232,7 @@ class Position:
     def copy(self) -> Self:
         return type(self)(self.board, self.ply, self.last_move)
 
-    def move(self, move: Move) -> Self:  # noqa: C901
+    def move(self, move: Move) -> Self:  # noqa: C901  # (function is too complex)
         new_pos = self
         home = self.to_move.home_squares
 
@@ -327,9 +326,12 @@ class Position:
         )
 
 
-def pgn(moves: Sequence[Move], result: GameEnd | None = None) -> str:
+def pgn(
+        moves: Sequence[Move],
+        result: Optional[GameEnd] = None,
+    ) -> str:
     if result is not None:
-        moves = [*moves, result]
+        moves = (*moves, result)
     return "\n".join(
         f"{f'{n}.'.rjust(3)} {' '.join(str(move).ljust(4) for move in moves)}"
         for n, moves in enumerate(batched(moves, 2), start=1)
@@ -413,21 +415,6 @@ WIN_SQUARES = (D4, D5, E4, E5)
 
 
 def main() -> None:
-    # fmt: off
-    _ = [
-    #      a       b       c       d       e       f       g       h
-        _P(0) , _P(0) , _P(0) , _P(0) , _P(-1), _P(-1), _P(-1), _P(-1),  # 8
-        _P(0) , _P(0) , _P(0) , _P(0) , _P(0) , _P(-1), _P(-1), _P(-1),  # 7
-        _P(0) , _P(0) , _P(0) , _P(0) , _P(0) , _P(0) , _P(-1), _P(-1),  # 6
-        _P(0) , _P(0) , _P(0) , _P(-1), _P(1) , _P(0) , _P(0) , _P(-1),  # 5
-        _P(1) , _P(0) , _P(0) , _P(1) , _P(1) , _P(0) , _P(0) , _P(0) ,  # 4
-        _P(1) , _P(1) , _P(0) , _P(0) , _P(0) , _P(0) , _P(0) , _P(0) ,  # 3
-        _P(1) , _P(1) , _P(1) , _P(0) , _P(0) , _P(0) , _P(0) , _P(0) ,  # 2
-        _P(1) , _P(1) , _P(1) , _P(1) , _P(0) , _P(0) , _P(0) , _P(0) ,  # 1
-    ]
-    # fmt: on
-
-    # print(p, p.win_progress, p.winner, sep="\n\n")
 
     move_list = (
         Move(B1, D3),
