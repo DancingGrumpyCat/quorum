@@ -7,16 +7,28 @@ from itertools import (  # type: ignore
 from typing import ClassVar, Optional, Self, Sequence
 
 
-class DisplayStyle(Enum):
-    circles = "●○·⎸"
+class DisplayStyle:
+    circles = "●○·"
     ascii_art = "XO-|"
 
-    def __getitem__(self, index: int) -> str:
-        return self.value[index]
+    def __init__(
+            self,
+            pieces: str,
+            sep: str,
+            files: str = "abcdefgh",
+            ranks: str = "12345678"
+        ) -> None:
+        self.pieces = pieces
+        self.sep = sep
+        self.files = files
+        self.ranks = ranks
+
+class Styles(Enum):
+    circles = DisplayStyle("●○·", "⎸")
+    ascii_art = DisplayStyle("XO-", "|")
 
 
-DISPLAY_STYLE = DisplayStyle.circles
-
+DEFAULT_STYLE = Styles.circles.value
 
 class Player(Enum):
     BLACK = -1
@@ -46,7 +58,7 @@ class Piece:
         player: Player | int,
         /,
         *,
-        display_style: DisplayStyle = DISPLAY_STYLE,
+        display_style: DisplayStyle = DEFAULT_STYLE,
     ) -> None:
         if isinstance(player, int):
             player = Player(player)
@@ -57,12 +69,7 @@ class Piece:
         return type(self)(~self.player)
 
     def __str__(self) -> str:
-        pieces = ""
-        match self.display_style:
-            case DisplayStyle.ascii_art:
-                pieces = DisplayStyle.ascii_art.value
-            case _:
-                pieces = DisplayStyle.circles.value
+        pieces = DEFAULT_STYLE.pieces
         match self.player:
             case Player.BLACK:
                 return pieces[0]
@@ -85,21 +92,30 @@ _P = Piece
 class _Line:
     char_set: str = ""
 
-    def __init__(self, value: int) -> None:
+    def __init__(
+            self, value: int,
+            style: DisplayStyle = DEFAULT_STYLE
+        ) -> None:
         self.value = value
-
-    def __str__(self) -> str:
-        if not (1 <= self.value <= 8):
-            return f"({self.value})"
-        return self.char_set[self.value - 1]
+        self.style = style
 
 
 class Rank(_Line):
     char_set: str = "12345678"
 
+    def __str__(self) -> str:
+        if not (1 <= self.value <= 8):
+            return f"({self.value})"
+        return self.style.ranks[self.value - 1]
 
 class File(_Line):
     char_set: str = "abcdefgh"
+
+    def __str__(self) -> str:
+        if not (1 <= self.value <= 8):
+            return f"({self.value})"
+        return self.style.files[self.value - 1]
+
 
 
 class Square:
@@ -227,10 +243,10 @@ class Position:
             f"Static evaluation: {self.static_evaluation}",
         )
 
-        sep = f"  {DISPLAY_STYLE[3]}  "
+        sep = f"  {DEFAULT_STYLE.sep}  "
 
-        return f"  {' '.join(File.char_set)}{sep}\n" + "\n".join(  # type: ignore
-            f"{Rank.char_set[7 - int(i)]} "
+        return f"  {' '.join(DEFAULT_STYLE.files)}{sep}\n" + "\n".join(  # type: ignore
+            f"{DEFAULT_STYLE.ranks[7 - int(i)]} "
             + " ".join(str(c) for c in row)
             + sep
             + extra
