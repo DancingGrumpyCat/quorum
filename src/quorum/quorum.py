@@ -79,6 +79,20 @@ class File(_Line):
 
 
 class Square:
+
+    neighbors = (
+        # fmt: off
+        (-1, -1),
+        (-1,  0),
+        (-1, +1),
+        ( 0, +1),
+        (+1, +1),
+        (+1,  0),
+        (+1, -1),
+        ( 0, -1),
+        # fmt: on
+    )
+
     def __init__(self, file: int, rank: int) -> None:
         self.file: int = file
         self.rank: int = rank
@@ -109,18 +123,6 @@ class Square:
 
 
 class Move:
-    neighbors = (
-        # fmt: off
-        (-1, -1),
-        (-1,  0),
-        (-1, +1),
-        ( 0, +1),
-        (+1, +1),
-        (+1,  0),
-        (+1, -1),
-        ( 0, -1),
-        # fmt: on
-    )
 
     def __init__(
         self,
@@ -136,6 +138,19 @@ class Move:
 
     def __str__(self) -> str:
         return f"{self.origin or '+'}{self.target or ''}"
+
+class GameEnd(Move):
+    def __init__(self, winning_player: Player) -> None:
+        self.winning_player = winning_player
+
+    def __str__(self) -> str:
+        match self.winning_player:
+            case Player.BLACK:
+                return "0-1"
+            case Player.WHITE:
+                return "1-0"
+            case Player.EMPTY:
+                return "½-½"
 
 
 class Position:
@@ -176,8 +191,12 @@ class Position:
         self.last_move = last_move
 
     def __str__(self) -> str:
+        if self.winner is Player.EMPTY:
+            to_move_str = f"{self.to_move} to move"
+        else:
+            to_move_str = f"{self.winner} wins by quorum"
         extras = (
-            f"{self.to_move} to move",
+            to_move_str,
             f"Move: {self.whole_move} (ply {self.ply})",
             f"Last move: {self.last_move}",
             f"Win progress: {self.win_progress}",
@@ -186,8 +205,8 @@ class Position:
 
         sep = "  │  "
 
-        return f"   {' '.join(File.char_set)}{sep}\n" + "\n".join(
-            f"{Rank.char_set[7 - int(i)]}  "
+        return f"  {' '.join(File.char_set)}{sep}\n" + "\n".join(  # type: ignore
+            f"{Rank.char_set[7 - int(i)]} "
             + " ".join(str(c) for c in row)
             + sep
             + extra
@@ -252,9 +271,9 @@ class Position:
             new_pos[move.origin] = Piece(Player.EMPTY)
 
             # do suffocations
-            for helper in (move.target + d for d in Move.neighbors):
+            for helper in (move.target + d for d in Square.neighbors):
                 if self[helper].player is ~self.to_move:
-                    for delta in Move.neighbors:
+                    for delta in Square.neighbors:
                         if not (hd := helper + delta).in_bounds:
                             continue
                         if self[hd].is_empty:
@@ -265,7 +284,7 @@ class Position:
             # do conversions
             for helper in (
                 move.target + (x * 2, y * 2)  # noqa: RUF005
-                for (x, y) in Move.neighbors
+                for (x, y) in Square.neighbors
             ):
                 with suppress(IndexError):
                     avg: Square = (helper + move.target) / 2
@@ -308,13 +327,13 @@ class Position:
         )
 
 
-def pgn(moves: Sequence[Move]) -> str:
+def pgn(moves: Sequence[Move], result: GameEnd | None = None) -> str:
+    if result is not None:
+        moves = [*moves, result]
     return "\n".join(
-        f"{n}. {' '.join(str(move).ljust(4) for move in moves)}"
+        f"{f'{n}.'.rjust(3)} {' '.join(str(move).ljust(4) for move in moves)}"
         for n, moves in enumerate(batched(moves, 2), start=1)
     )
-
-
 
 
 A1 = Square(1, 1)
@@ -392,6 +411,7 @@ H8 = Square(8, 8)
 
 WIN_SQUARES = (D4, D5, E4, E5)
 
+
 def main() -> None:
     # fmt: off
     _ = [
@@ -428,9 +448,14 @@ def main() -> None:
         Move(H5, F3),
         Move(A1, C5),
         Move(H6, D4),
-        Move(B1, H6),
+        Move(B1, B5),
+        Move(G6, C6),
+        Move(A3, E5),
+        Move(H7, D5),
+        Move(B3, D7),
+        Move(G7, E5),
     )
-    print(pgn(move_list))
+    print(pgn(move_list, GameEnd(Player.BLACK)))
 
     p = Position()
     print()

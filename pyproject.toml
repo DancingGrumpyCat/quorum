@@ -54,6 +54,7 @@ ignore = [
     "RUF001", # Ambiguous characters for strings
     "RUF002", # Ambiguous characters for docstring
     "RUF003", # Ambiguous characters for comments
+    "F405", # Imports
     "TRY003",
 ]
 exclude = ["tests"]
