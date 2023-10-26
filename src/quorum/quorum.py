@@ -8,29 +8,58 @@ from typing import ClassVar, Optional, Self, Sequence
 
 
 class DisplayStyle:
-    circles = "●○·"
-    ascii_art = "XO-|"
+    """
+    Only used to modify the printing of Quorum positions.
+    Can modify the piece presentation, the empty squares presentation, the vertical
+    separator between the board and the extra information, and the rank and file
+    symbols.
+
+    ### Example
+    ```py
+    greek = DisplayStyle("●○·", "⎸", files="αβγδεζηθ")
+    uppercase_ascii = DisplayStyle("XO.", "|", files="ABCDEFGH")
+    """
 
     def __init__(
-            self,
-            pieces: str,
-            sep: str,
-            files: str = "abcdefgh",
-            ranks: str = "12345678"
-        ) -> None:
+        self,
+        /,
+        *,
+        pieces: str,
+        placement: str = "+",
+        from_to_separator: str = "",
+        sep: str,
+        files: str = "abcdefgh",
+        ranks: str = "12345678",
+    ) -> None:
         self.pieces = pieces
+        self.placement = placement
+        self.from_to_separator = from_to_separator
         self.sep = sep
         self.files = files
         self.ranks = ranks
+        self.move_width = max(4 + len(from_to_separator) + 1, len(placement))
+
 
 class Styles(Enum):
-    circles = DisplayStyle("●○·", "⎸")
-    ascii_art = DisplayStyle("XO-", "|")
+    circles = DisplayStyle(pieces="●○·", placement="++", from_to_separator="-", sep="⎸")
+    lowercase_ascii = DisplayStyle(pieces="xo.", sep="|")
+    uppercase_ascii = DisplayStyle(pieces="XO.", sep="|", files="ABCDEFGH")
+    greek = DisplayStyle(pieces="●○·", sep="⎸", files="αβγδεζηθ")
 
 
 DEFAULT_STYLE = Styles.circles.value
 
+
 class Player(Enum):
+    """
+    ### Player
+    Can be `Black`, `White`, or `Empty` (for example, describing the winning player in a
+    game that isn't finished).
+
+    #### Home squares
+    Each player has home squares that they can generate stones on.
+    """
+
     BLACK = -1
     EMPTY = +0
     WHITE = +1
@@ -53,6 +82,11 @@ class Player(Enum):
 
 
 class Piece:
+    """
+    ### Player
+    Can be Black, White, or Empty (describing an empty square).
+    """
+
     def __init__(
         self,
         player: Player | int,
@@ -89,36 +123,40 @@ class Piece:
 _P = Piece
 
 
-class _Line:
-    char_set: str = ""
+class Line:
+    """
+    ### Line
+    Utility class, superclass of Rank and File.
+    """
 
-    def __init__(
-            self, value: int,
-            style: DisplayStyle = DEFAULT_STYLE
-        ) -> None:
+    def __init__(self, value: int) -> None:
         self.value = value
-        self.style = style
 
 
-class Rank(_Line):
-    char_set: str = "12345678"
-
+class Rank(Line):
+    """
+    A horizontal line. __str__ returns `f"<{value}>"` if not inside the range 1-8.
+    """
     def __str__(self) -> str:
         if not (1 <= self.value <= 8):
-            return f"({self.value})"
-        return self.style.ranks[self.value - 1]
+            return f"<{self.value}>"
+        return DEFAULT_STYLE.ranks[self.value - 1]
 
-class File(_Line):
-    char_set: str = "abcdefgh"
 
+class File(Line):
+    """
+    A vertical line. __str__ returns `f"<{value}>"` if not inside the range 1-8.
+    """
     def __str__(self) -> str:
         if not (1 <= self.value <= 8):
-            return f"({self.value})"
-        return self.style.files[self.value - 1]
-
+            return f"<{self.value}>"
+        return DEFAULT_STYLE.files[self.value - 1]
 
 
 class Square:
+    """
+    Intersection type of Rank and File.
+    """
     # fmt: off
     neighbors = (
         (-1, -1),
@@ -132,9 +170,9 @@ class Square:
     )
     # fmt: on
 
-    def __init__(self, file: int, rank: int) -> None:
-        self.file: int = file
-        self.rank: int = rank
+    def __init__(self, f: int, r: int, /) -> None:
+        self.file: int = f
+        self.rank: int = r
 
     @property
     def in_bounds(self) -> bool:
@@ -163,6 +201,9 @@ class Square:
 
 
 class Move:
+    """
+    Either has both a move and an origin (for a movement) or neither (for a placement).
+    """
     def __init__(
         self,
         origin: Optional[Square] = None,
@@ -176,7 +217,11 @@ class Move:
         )
 
     def __str__(self) -> str:
-        return f"{self.origin or '+'}{self.target or ''}"
+        return (
+            f"{self.origin or DEFAULT_STYLE.placement}"
+            f"{DEFAULT_STYLE.from_to_separator if self.target else ''}"
+            f"{self.target or ''}"
+        )
 
 
 class GameEnd(Move):
@@ -194,6 +239,12 @@ class GameEnd(Move):
 
 
 class Position:
+    """
+    Keeps track of a board, the current move number (ply), and the most recent move.
+    Ply starts at 0, after White's first move becomes 1, and after Black's first move
+    becomes 2.
+    """
+
     # fmt: off
     START_BOARD: ClassVar[list[Piece]] = [
     #      a       b       c       d       e       f       g       h
@@ -371,7 +422,8 @@ def pgn(
     if result is not None:
         moves = (*moves, result)
     return "\n".join(
-        f"{f'{n}.'.rjust(3)} {' '.join(str(move).ljust(4) for move in moves)}"
+        f"{f'{n}.'.rjust(3)} "
+        f"{' '.join(str(move).ljust(DEFAULT_STYLE.move_width) for move in moves)}"
         for n, moves in enumerate(batched(moves, 2), start=1)
     )
 
