@@ -61,8 +61,13 @@ class Player(Enum):
     """
 
     BLACK = -1
+    """The player with the black pieces."""
+
     EMPTY = +0
+    """Neither player."""
+
     WHITE = +1
+    """The player with the white pieces."""
 
     def __str__(self) -> str:
         return self.name.capitalize()
