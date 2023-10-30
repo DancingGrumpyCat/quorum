@@ -25,7 +25,7 @@ class DisplayStyle:
         /,
         *,
         pieces: str,
-        placement: str = "+",
+        placement: str = "++",
         from_to_separator: str = "",
         sep: str,
         files: str = "abcdefgh",
@@ -140,8 +140,9 @@ class Line:
 
 class Rank(Line):
     """
-    A horizontal line. __str__ returns `f"<{value}>"` if not inside the range 1-8.
+    A horizontal line. `__str__` returns `f"<{value}>"` if not inside the range 1-8.
     """
+
     def __str__(self) -> str:
         if not (1 <= self.value <= 8):
             return f"<{self.value}>"
@@ -150,8 +151,9 @@ class Rank(Line):
 
 class File(Line):
     """
-    A vertical line. __str__ returns `f"<{value}>"` if not inside the range 1-8.
+    A vertical line. `__str__` returns `f"<{value}>"` if not inside the range 1-8.
     """
+
     def __str__(self) -> str:
         if not (1 <= self.value <= 8):
             return f"<{self.value}>"
@@ -162,8 +164,9 @@ class Square:
     """
     Intersection type of Rank and File.
     """
+
     # fmt: off
-    neighbors = (
+    neighbors: tuple[tuple[int, int], ...] = (
         (-1, -1),
         (-1,  0),
         (-1, +1),
@@ -209,6 +212,7 @@ class Move:
     """
     Either has both a move and an origin (for a movement) or neither (for a placement).
     """
+
     def __init__(
         self,
         origin: Optional[Square] = None,
@@ -230,6 +234,11 @@ class Move:
 
 
 class GameEnd(Move):
+    """
+    The player in whose favor a game has ended. `Player.EMPTY` if the game has not
+    ended.
+    """
+
     def __init__(self, winning_player: Player) -> None:
         self.winning_player = winning_player
 
@@ -246,8 +255,8 @@ class GameEnd(Move):
 class Position:
     """
     Keeps track of a board, the current move number (ply), and the most recent move.
-    Ply starts at 0, after White's first move becomes 1, and after Black's first move
-    becomes 2.
+    Ply starts at `0`, after White's first move becomes `1`, and after Black's first
+    move becomes `2`.
     """
 
     # fmt: off
@@ -282,9 +291,9 @@ class Position:
         ply: int = 0,
         last_move: Optional[Move] = None,
     ) -> None:
-        self.board = board.copy()
-        self.ply = ply
-        self.last_move = last_move
+        self.board: list[Piece] = board.copy()
+        self.ply: int = ply
+        self.last_move: Optional[Move] = last_move
 
     def __str__(self) -> str:
         if self.winner is Player.EMPTY:
